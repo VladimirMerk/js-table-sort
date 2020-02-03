@@ -1,39 +1,72 @@
 {
-  const grid = document.getElementById('grid')
-  grid.addEventListener('click', sortEvent)
-  function sortEvent(e) {
+  const tableElement = document.getElementById('grid')
+  const tableBody = tableElement.querySelector('tbody')
+
+  tableElement.addEventListener('click', onClickTable)
+
+  function onClickTable(e) {
     if (e.target.tagName === 'TH') {
-      e.target.dataset.direction = +e.target.dataset.direction ? 0 : 1;
-      sortColumn(e.target.cellIndex, e.target.dataset.type, +e.target.dataset.direction)
+      const headerCell = e.target;
+      headerCell.dataset.direction = +headerCell.dataset.direction ? 0 : 1;
+      sortColumn(
+        headerCell.cellIndex,
+        headerCell.dataset.type,
+        +headerCell.dataset.direction
+      );
     }
   }
+
   function sortColumn(columnIndex = 0, sortType = 'string', direction = 1) {
-    const sorts = {
-      'string': (rowA, rowB) => {
-        return (rowA.cells[columnIndex].textContent > rowB.cells[columnIndex].textContent) ? direction ? 1 : -1 : direction ? -1 : 1;
-      },
-      'number': (rowA, rowB) => {
-        if (direction) {
-              return rowA.cells[columnIndex].textContent - rowB.cells[columnIndex].textContent
-        } else {
-            return rowB.cells[columnIndex].textContent - rowA.cells[columnIndex].textContent
-        }
-      }
+    const tableRows = Array.from(tableBody.rows);
+    const sortedRowElements = tableRows
+      .sort(sortRowsSequence(columnIndex, sortType, direction))
+      .reduce(generateRowsSequence, document.createDocumentFragment());
+
+    tableBody.innerHTML = '';
+    tableBody.appendChild(sortedRowElements);
+  }
+
+  function sortRowsSequence(columnIndex, sortType, direction) {
+    const sorts = getPossibleSortsFunctions(direction);
+    return (rowA, rowB) => {
+      return sorts[sortType](
+        rowA.cells[columnIndex].textContent,
+        rowB.cells[columnIndex].textContent
+      );
+    };
+  }
+
+  function getPossibleSortsFunctions(direction) {
+    const sorts = {};
+
+    sorts.string = sortString.bind(null, direction);
+    sorts.number = sortNumber.bind(null, direction);
+
+    return sorts;
+  }
+
+  function sortString(direction, a, b) {
+    let result;
+    if (a > b) {
+      result = direction ? 1 : -1;
+    } else {
+      result = direction ? -1 : 1;
     }
-    
-    const tbody = grid.querySelector('tbody')
-    const allRows = Array.from(tbody.rows);
-    const sortTBody = allRows
-    .sort(sorts[sortType])
-    .reduce(
-      (fragment, tr) => {
-        fragment.appendChild(tr);
-        return fragment
-      },
-      document.createDocumentFragment()
-    )
-    
-    tbody.innerHTML = '';
-    tbody.appendChild(sortTBody);
+    return result;
+  }
+
+  function sortNumber(direction, a, b) {
+    let result;
+    if (direction) {
+      result = a - b;
+    } else {
+      result = b - a;
+    }
+    return result;
+  }
+
+  function generateRowsSequence(fragment, tr) {
+    fragment.appendChild(tr);
+    return fragment;
   }
 }
